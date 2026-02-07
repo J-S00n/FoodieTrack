@@ -53,7 +53,7 @@ async def export_preferences_for_llm(
                 "type": p.preference_type,
                 "value": p.value,
                 "category": p.category,
-                "metadata": p.metadata or {},
+                "metadata": p.meta or {},
             }
         )
     return export

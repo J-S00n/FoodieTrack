@@ -88,10 +88,10 @@ async def analyze_voice(
                     negative = any(trig + kw_l in t for trig in neg_triggers)
                     # or presence of 'allerg' anywhere plus keyword
                     if ("allerg" in t or "allergy" in t or "allergic" in t) and kw_l in t:
-                        prefs.append({"preference_type": "allergy", "value": kw, "category": "food", "metadata": {"source": "voice"}})
+                        prefs.append({"preference_type": "allergy", "value": kw, "category": "food", "meta": {"source": "voice"}})
                         continue
                     if negative:
-                        prefs.append({"preference_type": "dislike", "value": kw, "category": "food", "metadata": {"source": "voice"}})
+                        prefs.append({"preference_type": "dislike", "value": kw, "category": "food", "meta": {"source": "voice"}})
 
                 # Try simple pattern: "i don't like X" or "i hate X"
                 patterns = [r"i (?:don't|do not|dont) like ([a-zA-Z \-']+)", r"i hate ([a-zA-Z \-']+)", r"i'm allergic to ([a-zA-Z \-']+)", r"i am allergic to ([a-zA-Z \-']+)"]
@@ -100,7 +100,7 @@ async def analyze_voice(
                         item = m.group(1).strip()
                         if item:
                             ptype = "allergy" if "allerg" in pat or "allergic" in pat else "dislike"
-                            prefs.append({"preference_type": ptype, "value": item, "category": "food", "metadata": {"source": "voice"}})
+                            prefs.append({"preference_type": ptype, "value": item, "category": "food", "meta": {"source": "voice"}})
 
                 # Deduplicate by (type,value)
                 seen = set()

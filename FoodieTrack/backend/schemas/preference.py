@@ -6,7 +6,7 @@ class PreferenceCreate(BaseModel):
     preference_type: str
     value: str
     category: Optional[str] = "food"
-    metadata: Optional[dict] = None
+    meta: Optional[dict] = None
 
 
 class PreferenceRead(PreferenceCreate):
@@ -14,3 +14,4 @@ class PreferenceRead(PreferenceCreate):
     user_id: str
     created_at: str
     updated_at: str
+    meta: Optional[dict] = None

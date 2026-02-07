@@ -10,6 +10,7 @@ class Preference(SQLModel, table=True):
     category: Optional[str] = Field(default="food")
     preference_type: str = Field(default="dislike")
     value: str
-    metadata: Optional[dict] = Field(sa_column=Column(JSON), default=None)
+    # use attribute name `meta` to avoid colliding with SQLAlchemy `metadata` attr
+    meta: Optional[dict] = Field(sa_column=Column(JSON, name="metadata"), default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
