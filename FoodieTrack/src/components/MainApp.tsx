@@ -1,20 +1,42 @@
 import { useAuth0 } from "@auth0/auth0-react";
+import { useEffect, useState } from "react";
+
 import VoiceRecorder from "./VoiceRecorder";
-import LogoutButton from "./LogoutButton";
+import ProfileForm from "./onboarding/ProfileForm";
 import type { UserProfile } from "../types";
 
-interface Props {
-  profile: UserProfile;
-}
+export default function MainApp() {
+  const { user, logout } = useAuth0();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
-export default function MainApp({ profile }: Props) {
-  const { logout } = useAuth0();
+  // 🔹 Load profile scoped to Auth0 user
+  useEffect(() => {
+    if (!user) return;
 
+    const key = `foodie_profile_${user.sub}`;
+    const stored = localStorage.getItem(key);
+
+    if (stored) {
+      setProfile(JSON.parse(stored));
+    } else {
+      setProfile(null);
+    }
+
+    setLoadingProfile(false);
+  }, [user]);
+
+  // 🔹 Save onboarding profile
+  const handleOnboardingComplete = (profile: UserProfile) => {
+    if (!user) return;
+
+    const key = `foodie_profile_${user.sub}`;
+    localStorage.setItem(key, JSON.stringify(profile));
+    setProfile(profile);
+  };
+
+  // 🔹 Logout (Auth0 handles session)
   const handleLogout = () => {
-    // Clear onboarding/profile state
-    localStorage.removeItem("foodie_profile");
-
-    // Log out of Auth0 and return home
     logout({
       logoutParams: {
         returnTo: window.location.origin,
@@ -22,9 +44,11 @@ export default function MainApp({ profile }: Props) {
     });
   };
 
+  if (loadingProfile) return <div>Loading...</div>;
+
   return (
-    <div style={{ padding: "2rem", maxWidth: "600px" }}>
-      {/* Header row */}
+    <div style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto" }}>
+      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -34,19 +58,20 @@ export default function MainApp({ profile }: Props) {
         }}
       >
         <h2>Daily Check-in 👋</h2>
-
-        {/* 🔴 Sign out button (RECOVERED) */}
-        <button onClick={handleLogout} className="button logout">
-          Log out
-        </button>
-        {/* or replace with <LogoutButton /> if you prefer */}
+        <button onClick={handleLogout}>Log out</button>
       </div>
 
-      <p style={{ color: "#6b7280", marginBottom: "1rem" }}>
-        Your preferences are saved. Just speak naturally — we’ll take care of the rest.
-      </p>
-
-      <VoiceRecorder />
+      {/* Onboarding OR Audio */}
+      {!profile ? (
+        <ProfileForm onComplete={handleOnboardingComplete} />
+      ) : (
+        <>
+          <p style={{ color: "#6b7280", marginBottom: "1rem" }}>
+            Your preferences are saved. Just speak naturally — we’ll take care of the rest.
+          </p>
+          <VoiceRecorder />
+        </>
+      )}
     </div>
   );
 }
