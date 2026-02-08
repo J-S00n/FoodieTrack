@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import Home from "./components/Home";
 import MainApp from "./components/MainApp";
+import GridLayout from "./components/Output";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth0();
@@ -37,6 +38,12 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/output" element={ <ProtectedRoute>
+          <GridLayout />
+        </ProtectedRoute>
+        }
+      />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

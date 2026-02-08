@@ -1,5 +1,4 @@
 import React from "react";
-import "./GridLayout.css";
 
 const GridLayout: React.FC = () => {
   return (

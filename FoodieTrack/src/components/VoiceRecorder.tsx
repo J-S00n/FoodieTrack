@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import { ElevenLabsClient } from "elevenlabs";
 
+import { useNavigate } from "react-router-dom"; 
+
 
 export default function VoiceRecorder() {
+  const navigate = useNavigate();
   const [recording, setRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -62,6 +65,12 @@ export default function VoiceRecorder() {
 
   return (
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #ccc" }}>
+      <button
+        onClick={() => navigate("/output")}
+         className="absolute top-4 left-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+      >
+        confirm and continue
+      </button>
       <h3>Voice Check-in 🎤</h3>
 
       {!recording ? (
