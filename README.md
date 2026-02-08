@@ -15,7 +15,7 @@ Recommends what to eat from dining halls around campus for first-year Waterloo s
 ---
 
 ## How we built it
-React + JavaScript on the frontend to collect user input through clean, responsive UI components.  
+React + TypeScript on the frontend to collect user input through clean, responsive UI components.  
 Python on the backend to orchestrate logic, data processing, and API communication.  
 Multiple AI and LLM services to interpret audio, extract mood and context, and generate meaningful recommendations.  
 A structured pipeline that converts all user audio, preferences, and history into clean data that Gemini can process effectively.
