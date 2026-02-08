@@ -20,7 +20,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Menu,
   X,
@@ -30,7 +30,6 @@ import {
   Mic,
   Heart,
   Leaf,
-  ChevronRight,
   ArrowRight,
   Star,
   Play,

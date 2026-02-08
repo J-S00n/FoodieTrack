@@ -11,9 +11,10 @@ import {
 
 export default function DietaryForm() {
   const { getAccessTokenSilently } = useAuth0();
+
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
-  const [contains, setContains] = useState<string[]>([]);
+  const [contains] = useState<string[]>([]);
   const [otherAllergies, setOtherAllergies] = useState("");
   const [goal, setGoal] = useState("");
 
@@ -34,14 +35,6 @@ export default function DietaryForm() {
     );
   };
 
-  /**
-   * Save dietary preferences and get food recommendations
-   *
-   * This demonstrates the full flow:
-   * 1. Save all form selections to the database via /preferences/ endpoint
-   * 2. Call /recommendations/ with food candidates to get AI-scored recommendations
-   * 3. The backend uses Gemini to score items based on user's stored preferences
-   */
   const handleGetRecommendation = async () => {
     setLoading(true);
     setError(null);
@@ -50,7 +43,9 @@ export default function DietaryForm() {
     try {
       const token = await getAccessTokenSilently();
 
-      // Save preferences first
+      // ================================
+      // 1️⃣ SAVE PREFERENCES TO DB (UNCHANGED)
+      // ================================
       const prefsToSave: PreferenceCreate[] = [
         ...preferences.map((p) => ({
           preference_type: "preference",
@@ -75,7 +70,7 @@ export default function DietaryForm() {
       if (otherAllergies) {
         prefsToSave.push({
           preference_type: "allergy",
-          value: otherAllergies,
+          value: otherAllergies.toLowerCase(),
           category: "custom",
           metadata: { source: "form" },
         });
@@ -90,27 +85,39 @@ export default function DietaryForm() {
         });
       }
 
-      // Save all preferences to database
       for (const pref of prefsToSave) {
         await preferencesService.create(pref, token);
       }
 
-      // Example food candidates - in real app, these might come from a menu API
-      const candidates = [
-        "Grilled chicken salad",
-        "Vegan Buddha bowl",
-        "Classic burger",
-        "Sushi platter",
-        "Vegetarian pasta",
-        "Gluten-free pizza",
-        "Fish and chips",
-        "Quinoa bowl",
-      ];
+      // ================================
+      // 2️⃣ BUILD GEMINI-READY PREFERENCES
+      // ================================
+      const geminiPreferences = {
+        dietary_restrictions: preferences.map((p) => p.toLowerCase()),
+        restrictions: restrictions.map((r) => r.toLowerCase()),
+        contains: contains.map((c) => c.toLowerCase()),
+        other_allergies: otherAllergies
+          ? [otherAllergies.toLowerCase()]
+          : [],
+        goal: goal.toLowerCase(),
+      };
 
-      // Get AI-powered recommendations based on stored preferences
+      // ================================
+      // 3️⃣ STORE IN LOCAL STORAGE
+      // ================================
+      localStorage.setItem(
+        "geminiPreferences",
+        JSON.stringify(geminiPreferences)
+      );
+
+      // ================================
+      // 4️⃣ CALL RECOMMENDATIONS ENDPOINT
+      // ================================
       const recs = await recommendationsService.getRecommendations(
-        candidates,
-        3,
+        {
+          transcript: "voice transcript will be added later",
+          preferences: geminiPreferences,
+        },
         token
       );
 
@@ -127,9 +134,6 @@ export default function DietaryForm() {
   return (
     <div style={{ marginTop: "2rem", maxWidth: "600px" }}>
       <h2>🥗 Dietary Preferences & Restrictions</h2>
-      <p style={{ fontSize: "0.9rem", color: "#555" }}>
-        Leave preferences unselected if you have no specific dietary preference.
-      </p>
 
       <h3>Dietary Preferences</h3>
       {["Vegan", "Vegetarian", "Pescatarian", "Halal", "Kosher"].map((p) => (
@@ -154,28 +158,13 @@ export default function DietaryForm() {
       ))}
 
       <label style={{ display: "block", marginTop: "0.5rem" }}>
-        Other allergies (optional):
+        Other allergies:
         <input
           type="text"
           value={otherAllergies}
           onChange={(e) => setOtherAllergies(e.target.value)}
-          placeholder="e.g. sesame, shellfish"
-          style={{ width: "100%", marginTop: "0.25rem" }}
         />
       </label>
-
-      <h3 style={{ marginTop: "1rem" }}>Contains / May Contain</h3>
-      {["Contains mustard", "May contain peanuts", "May contain tree nuts"].map(
-        (c) => (
-          <label key={c} style={{ display: "block" }}>
-            <input
-              type="checkbox"
-              onChange={() => toggle(c, contains, setContains)}
-            />{" "}
-            {c}
-          </label>
-        )
-      )}
 
       <h3 style={{ marginTop: "1rem" }}>Goal</h3>
       {["Comfort", "High protein", "Energy boost", "Light / healthy"].map(
@@ -191,10 +180,10 @@ export default function DietaryForm() {
         )
       )}
 
-      {error && <div style={{ color: "red", marginTop: "1rem" }}>{error}</div>}
+      {error && <div style={{ color: "red" }}>{error}</div>}
 
       <button
-        style={{ marginTop: "1.5rem", padding: "0.5rem 1rem" }}
+        style={{ marginTop: "1.5rem" }}
         onClick={handleGetRecommendation}
         disabled={loading}
       >
@@ -202,24 +191,9 @@ export default function DietaryForm() {
       </button>
 
       {recommendations && (
-        <div style={{ marginTop: "2rem", padding: "1rem", background: "#f0f0f0" }}>
-          <h3>Top Recommendations For You 🍽️</h3>
-          {recommendations.recommendations.map((rec, idx) => (
-            <div
-              key={idx}
-              style={{
-                padding: "1rem",
-                margin: "0.5rem 0",
-                background: "white",
-                border: "1px solid #ddd",
-              }}
-            >
-              <strong>{rec.item}</strong>
-              <p>Match: {(rec.score * 100).toFixed(0)}%</p>
-              {rec.reason && <p style={{ fontSize: "0.9rem" }}>{rec.reason}</p>}
-            </div>
-          ))}
-        </div>
+        <pre style={{ marginTop: "2rem" }}>
+          {JSON.stringify(recommendations, null, 2)}
+        </pre>
       )}
     </div>
   );

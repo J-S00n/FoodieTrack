@@ -1,20 +1,37 @@
 import { useRef, useState, useEffect } from "react";
 import { ElevenLabsClient } from "elevenlabs";
-import { useNavigate } from "react-router-dom";
+import Results from "./Results";
 
 
+import { useAuth0 } from "@auth0/auth0-react";
 
 export default function VoiceRecorder() {
-  const navigate = useNavigate();
+  const { user } = useAuth0();
+  const [profile, setProfile] = useState(null);
 
   const [recording, setRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasResults, setHasResults] = useState(false);
+  const [results, setResults] = useState(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+      if (!user) return;
+  
+      const key = `foodie_profile_${user.sub}`;
+      const stored = localStorage.getItem(key);
+  
+      if (stored) {
+        setProfile(JSON.parse(stored));
+      } else {
+        setProfile(null);
+      }
+    }, [user]);
 
   // ElevenLabs client (unchanged)
   const elevenlabs = new ElevenLabsClient({
@@ -22,6 +39,8 @@ export default function VoiceRecorder() {
   });
 
   const startRecording = async () => {
+    setHasResults(false);
+    setResults(null);
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
 
@@ -45,6 +64,15 @@ export default function VoiceRecorder() {
         });
 
         setTranscript(result.text || "No transcript returned.");
+
+        // Optional backend persistence (kept from teammate)
+        /*await fetch("http://localhost:8000/api/store-transcript", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ transcript: result.text }),
+        });*/
       } catch (err) {
         console.error(err);
         setTranscript("Error transcribing audio.");
@@ -59,25 +87,45 @@ export default function VoiceRecorder() {
     recorderRef.current?.stop();
     setRecording(false);
   };
+  const { getAccessTokenSilently } = useAuth0();
 
-  // loading implementaiton is hereee
-  const handleConfirm = async () => {
+  const analyzeData = async () => {
+  try {
     setLoading(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    navigate("/output");
-  };
-
-
-  useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+    if (!transcript) {
+      alert("No transcript available yet.");
+      return;
     }
-  }, [transcript]);
+
+    // Auth token
+    const token = await getAccessTokenSilently();
+
+    console.log("user preferences: ", profile ? JSON.stringify(profile) : null);
+
+    // Call backend → Gemini
+    const response = await fetch("http://localhost:8000/recommendations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        transcript,
+        preferences: profile ? JSON.stringify(profile) : null,
+      }),
+    });
+
+    const data = await response.json();
+    console.log("AI Recommendation Result:", data);
+    setResults(data);
+    setLoading(false);
+    setHasResults(true);
+
+  } catch (err) {
+    console.error("Failed to analyze voice data:", err);
+    alert("Failed to analyze mood and recommend food.");
+  }
+};
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -128,10 +176,10 @@ export default function VoiceRecorder() {
         <div className="w-full max-w-md">
           {!loading ? (
             <button
-              onClick={handleConfirm}
-              className="w-full px-8 py-3 rounded-full bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition"
+              onClick={(analyzeData)}
+              className="w-full px-4 py-3 rounded-full bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition"
             >
-              Confirm and continue
+              What should I get?
             </button>
           ) : (
             <div className="mt-6 text-center">
@@ -147,6 +195,7 @@ export default function VoiceRecorder() {
           )}
         </div>
       )}
+      {hasResults && <Results results={results}></Results>}
     </div>
   );
 }
