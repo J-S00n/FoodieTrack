@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 import type {
   UserProfile,
   DietGoal,
   ActivityLevel,
   CookingAccess,
 } from "../../types";
+import { preferencesService } from "../../services/preferences";
 
 interface Props {
   onComplete: (profile: UserProfile) => void;
@@ -16,6 +18,7 @@ type ArrayKeys =
   | "preferredCuisines";
 
 export default function ProfileForm({ onComplete }: Props) {
+  const { getAccessTokenSilently } = useAuth0();
   const [profile, setProfile] = useState<UserProfile>({
     dietaryPreferences: [],
     dietaryRestrictions: [],
@@ -25,6 +28,8 @@ export default function ProfileForm({ onComplete }: Props) {
   });
 
   const [otherCuisines, setOtherCuisines] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleArrayValue = (key: ArrayKeys, value: string) => {
     setProfile(prev => {
@@ -36,6 +41,103 @@ export default function ProfileForm({ onComplete }: Props) {
           : [...arr, value],
       };
     });
+  };
+
+  /**
+   * Save profile to both localStorage and backend database
+   * 
+   * This demonstrates:
+   * - Converting form data to preference objects
+   * - Saving to backend API
+   * - Error handling during save
+   */
+  const handleComplete = async () => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Save to localStorage (existing logic)
+      onComplete(profile);
+
+      // Also save to backend database for future reference and recommendations
+      const token = await getAccessTokenSilently();
+
+      // Build preferences list from profile data
+      const prefsToSave = [
+        // Save dietary preferences
+        ...profile.dietaryPreferences.map((pref) => ({
+          preference_type: "preference",
+          value: pref.toLowerCase(),
+          category: "diet",
+          metadata: { source: "onboarding" },
+        })),
+        // Save dietary restrictions
+        ...profile.dietaryRestrictions.map((restr) => ({
+          preference_type: "restriction",
+          value: restr.toLowerCase(),
+          category: "allergy",
+          metadata: { source: "onboarding" },
+        })),
+        // Save preferred cuisines
+        ...(profile.preferredCuisines ?? []).map((cuisine) => ({
+          preference_type: "cuisine_preference",
+          value: cuisine.toLowerCase(),
+          category: "cuisine",
+          metadata: { source: "onboarding" },
+        })),
+      ];
+
+      // Add custom allergies if provided
+      if (profile.otherAllergies?.trim()) {
+        prefsToSave.push({
+          preference_type: "allergy",
+          value: profile.otherAllergies,
+          category: "custom",
+          metadata: { source: "onboarding" },
+        });
+      }
+
+      // Add diet goal if set
+      if (profile.dietGoal) {
+        prefsToSave.push({
+          preference_type: "diet_goal",
+          value: profile.dietGoal,
+          category: "goal",
+          metadata: { source: "onboarding" },
+        });
+      }
+
+      // Add activity level if set
+      if (profile.activityLevel) {
+        prefsToSave.push({
+          preference_type: "activity_level",
+          value: profile.activityLevel,
+          category: "lifestyle",
+          metadata: { source: "onboarding" },
+        });
+      }
+
+      // Add cooking access if set
+      if (profile.cookingAccess) {
+        prefsToSave.push({
+          preference_type: "cooking_access",
+          value: profile.cookingAccess,
+          category: "practical",
+          metadata: { source: "onboarding" },
+        });
+      }
+
+      // Save all preferences to backend
+      for (const pref of prefsToSave) {
+        await preferencesService.create(pref, token);
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(`Failed to save profile: ${errorMsg}`);
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -193,20 +295,23 @@ export default function ProfileForm({ onComplete }: Props) {
           SUBMIT
          ====================== */}
 
+      {error && <div style={{ color: "red", marginTop: "1rem" }}>{error}</div>}
+
       <button
-        onClick={() => onComplete(profile)}
+        onClick={handleComplete}
+        disabled={saving}
         style={{
           marginTop: "2rem",
           padding: "0.75rem 1.5rem",
           fontSize: "1rem",
           borderRadius: "8px",
-          background: "#1f2937",
+          background: saving ? "#999" : "#1f2937",
           color: "white",
           border: "none",
-          cursor: "pointer",
+          cursor: saving ? "not-allowed" : "pointer",
         }}
       >
-        Continue
+        {saving ? "Saving..." : "Continue"}
       </button>
     </div>
   );
