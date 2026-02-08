@@ -37,6 +37,14 @@ export default function VoiceRecorder() {
         const result = await elevenlabs.speechToText.convert({ file, model_id: "scribe_v2" });
 
         setTranscript(result.text || "No transcript returned.");
+        
+        await fetch("/api/store-transcript", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ transcript: result.text }),
+        });
       } catch (err) {
         console.error("Transcription error:", err);
         setTranscript("Error transcribing audio.");
