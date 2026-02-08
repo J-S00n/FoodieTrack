@@ -1,61 +1,42 @@
+import snowflake.connector
 import os
-from sqlmodel import SQLModel
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-import importlib
-import logging
-import sqlite3
+from dotenv import load_dotenv
+from datetime import date
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite+aiosqlite:///./foodietrack.db",
-)
+load_dotenv()  # loads your .env variables
 
-# If using the default sqlite URL, ensure the sqlite file and core table exist
-try:
-    if DATABASE_URL.startswith("sqlite"):
-        # Extract path after the '///'
-        if "///" in DATABASE_URL:
-            db_path = DATABASE_URL.split("///", 1)[1]
-        else:
-            db_path = DATABASE_URL
-        # Normalize path (strip leading ./)
-        db_path = db_path.replace("./", "")
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS preferences (
-                id INTEGER PRIMARY KEY,
-                user_id TEXT,
-                category TEXT DEFAULT 'food',
-                preference_type TEXT DEFAULT 'dislike',
-                value TEXT,
-                metadata JSON,
-                created_at TEXT,
-                updated_at TEXT
-            )
-            """
-        )
-        conn.commit()
+def get_connection():
+    return snowflake.connector.connect(
+        user=os.getenv("SNOWFLAKE_USER"),
+        password=os.getenv("SNOWFLAKE_PASSWORD"),
+        account=os.getenv("SNOWFLAKE_ACCOUNT"),
+        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+        database=os.getenv("SNOWFLAKE_DATABASE"),
+        schema=os.getenv("SNOWFLAKE_SCHEMA"),
+        role=os.getenv("SNOWFLAKE_ROLE"),
+    )
+
+def query_today():
+    """
+    Queries the given table and returns rows where day_column equals today.
+    """
+    today_str = date.today().isoformat()  # 'YYYY-MM-DD'
+
+    sql = f"""
+        SELECT *
+        FROM menu_items
+        WHERE day = '{today_str}'
+    """
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(sql)
+        rows = cur.fetchall()
+        columns = [c[0] for c in cur.description]
+        results = [dict(zip(columns, row)) for row in rows]
+        return results
+    finally:
+        cur.close()
         conn.close()
-except Exception as e:
-    logging.debug(f"Could not ensure sqlite preferences table: {e}")
-
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
-async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-async def init_db() -> None:
-    # Ensure model modules are imported so SQLModel.metadata includes them
-    for mod in ("backend.models.preference", "models.preference", "models.preference"):
-        try:
-            importlib.import_module(mod)
-        except Exception:
-            logging.debug(f"Could not import model module {mod}")
-
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-
-async def get_session() -> AsyncSession:
-    async with async_session() as session:
-        yield session
