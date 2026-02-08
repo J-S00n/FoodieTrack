@@ -1,0 +1,78 @@
+.profile-container {
+  max-width: 620px;
+  margin: 3rem auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+.progress-container {
+  height: 6px;
+  background: #e6f4ec;
+  border-radius: 999px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.step-indicator {
+  margin-top: 0.5rem;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.slide h1 {
+  font-size: 2.1rem;
+  color: #064e3b;
+}
+
+.slide p {
+  margin: 1rem 0 2rem;
+  color: #475569;
+}
+
+.slide input {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #d1fae5;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #e5f5ec;
+  margin-bottom: 0.75rem;
+}
+
+.slide button {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid #16a34a;
+  background: white;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+}
+
+.slide button.selected {
+  background: #16a34a;
+  color: white;
+}
+
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.error {
+  color: red;
+  margin-top: 1rem;
+}

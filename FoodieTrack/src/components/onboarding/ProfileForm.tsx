@@ -184,7 +184,7 @@ export default function ProfileForm({ onComplete }: Props) {
          ====================== */}
 
       <h3>Diet Goal</h3>
-      {(["cut", "maintain", "bulk"] as DietGoal[]).map(goal => (
+      {(["Cut", "Maintain", "Bulk"] as DietGoal[]).map(goal => (
         <label key={goal} style={{ display: "block" }}>
           <input
             type="radio"
@@ -204,7 +204,7 @@ export default function ProfileForm({ onComplete }: Props) {
 
       <h3>Activity Level</h3>
       {(
-        ["sedentary", "light", "active", "very_active"] as ActivityLevel[]
+        ["Sedentary", "Light", "Active", "Very_active"] as ActivityLevel[]
       ).map(level => (
         <label key={level} style={{ display: "block" }}>
           <input
@@ -276,7 +276,7 @@ export default function ProfileForm({ onComplete }: Props) {
 
       <h3>Cooking Access</h3>
       {(
-        ["none", "microwave", "full_kitchen"] as CookingAccess[]
+        ["None", "Microwave", "Full_kitchen"] as CookingAccess[]
       ).map(access => (
         <label key={access} style={{ display: "block" }}>
           <input

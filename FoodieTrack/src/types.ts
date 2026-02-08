@@ -1,8 +1,9 @@
-export type DietGoal = "cut" | "maintain" | "bulk";
-export type ActivityLevel = "sedentary" | "light" | "active" | "very_active";
-export type CookingAccess = "none" | "microwave" | "full_kitchen";
+export type DietGoal = "Cut" | "Maintain" | "Bulk";
+export type ActivityLevel = "Sedentary" | "Light" | "Active" | "Very_active";
+export type CookingAccess = "None" | "Microwave" | "Full_kitchen";
 
 export interface UserProfile {
+  name?: string;
   dietaryPreferences: string[];
   dietaryRestrictions: string[];
   otherAllergies?: string;
