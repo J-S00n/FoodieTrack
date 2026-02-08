@@ -36,10 +36,7 @@ import {
   Play,
 } from "lucide-react";
 
-/* -------------------------------------------------------------------------- */
-/*                                   HOME                                     */
-/* -------------------------------------------------------------------------- */
-
+//HOME            
 export default function Home() {
   const { loginWithRedirect, logout, isAuthenticated } = useAuth0();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -51,14 +48,11 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* ------------------------------------------------------------------------ */
-  /*                                   UI                                     */
-  /* ------------------------------------------------------------------------ */
-
+  // UI                             
   return (
     <div className="min-h-screen bg-[#FAFAF8] overflow-x-hidden">
 
-      {/* ============================ HEADER ============================ */}
+      {/*HEADER*/}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled ? "bg-white/90 backdrop-blur border-b border-slate-200" : ""
@@ -107,7 +101,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ============================ HERO ============================ */}
+      {/*HERO*/}
       <section className="pt-40 pb-28 px-6 max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
@@ -144,7 +138,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================ FEATURES ============================ */}
+      {/*FEATURES*/}
       <section id="features" className="py-28 bg-white">
         <div className="max-w-7xl mx-auto px-6">
 
@@ -176,7 +170,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================ HOW IT WORKS ============================ */}
+      {/*HOW IT WORKS*/}
       <section id="how-it-works" className="py-28 bg-[#EFEEEA]/60">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-12">How it works</h2>
@@ -189,7 +183,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================ TESTIMONIALS ============================ */}
+      {/*TESTIMONIALS*/}
       <section id="testimonials" className="py-28">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-center text-4xl font-bold mb-12">
@@ -214,7 +208,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================ FOOTER ============================ */}
+      {/*FOOTER*/}
       <footer className="py-16 border-t text-center text-sm text-slate-400">
         © {new Date().getFullYear()} FoodieTrack. All rights reserved.
       </footer>
@@ -222,9 +216,7 @@ export default function Home() {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              HELPER COMPONENTS                              */
-/* -------------------------------------------------------------------------- */
+/* HELPER COMPONENTS */                 
 
 function Feature({ icon: Icon, title }: any) {
   return (

@@ -10,7 +10,6 @@ import { Auth0Provider } from '@auth0/auth0-react';
 // console.log('Auth0 Domain:', domain);
 // console.log('Auth0 Client ID:', clientId);
 
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Auth0Provider

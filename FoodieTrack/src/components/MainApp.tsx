@@ -10,7 +10,7 @@ export default function MainApp() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // 🔹 Load profile scoped to Auth0 user
+  // Load profile scoped to Auth0 user
   useEffect(() => {
     if (!user) return;
 
@@ -26,7 +26,7 @@ export default function MainApp() {
     setLoadingProfile(false);
   }, [user]);
 
-  // 🔹 Save onboarding profile
+  // Save onboarding profile
   const handleOnboardingComplete = (profile: UserProfile) => {
     if (!user) return;
 
@@ -35,7 +35,7 @@ export default function MainApp() {
     setProfile(profile);
   };
 
-  // 🔹 Logout (Auth0 handles session)
+  // Logout (Auth0 handles session)
   const handleLogout = () => {
     logout({
       logoutParams: {
