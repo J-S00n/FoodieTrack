@@ -3,10 +3,8 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', system-ui, sans-serif;
-  color-scheme: light;
-  background-color: #ffffff;
-  color: #1a1a1a;
+  font-family: Inter, system-ui, sans-serif;
+  color: #0f172a;
 }
 
 body {
@@ -14,10 +12,53 @@ body {
   min-width: 320px;
 }
 
+/* Green / Blue animated wave background */
+.bg-wave-gradient {
+  background: linear-gradient(
+    -45deg,
+    #ecfeff,
+    #d1fae5,
+    #e0f2fe,
+    #dcfce7
+  );
+  background-size: 400% 400%;
+  animation: waveMove 20s ease infinite;
+}
+
+@keyframes waveMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 button {
   transition: all 0.2s ease-in-out;
 }
 
-.auth0-btn {
-  @apply px-6 py-2 rounded-full font-semibold transition-all duration-200;
+
+
+@keyframes loadingBar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
+
+.animate-loading-bar {
+  animation: loadingBar 1.5s ease-in-out infinite;
+}
+
+
+
+
