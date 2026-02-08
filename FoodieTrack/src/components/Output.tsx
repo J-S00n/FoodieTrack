@@ -8,7 +8,7 @@ const GridLayout: React.FC = () => {
     <div className="container mx-auto grid gap-8 py-10">
         <button
         onClick={() => navigate("/MainApp")}
-         className="absolute bottom-6 right-6 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+         className="absolute bottom-8 right-10 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
       >
         New chat
       </button>
