@@ -12,28 +12,31 @@ interface Props {
   onComplete: (profile: UserProfile) => void;
 }
 
-type ArrayKeys =
-  | "dietaryPreferences"
-  | "dietaryRestrictions"
-  | "preferredCuisines";
+const TOTAL_STEPS = 8;
 
 export default function ProfileForm({ onComplete }: Props) {
   const { getAccessTokenSilently } = useAuth0();
+
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [profile, setProfile] = useState<UserProfile>({
+    name: "",
     dietaryPreferences: [],
     dietaryRestrictions: [],
     preferredCuisines: [],
     otherAllergies: "",
-    onDiet: false,
   });
 
-  const [otherCuisines, setOtherCuisines] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const progressPct = ((step + 1) / TOTAL_STEPS) * 100;
 
-  const toggleArrayValue = (key: ArrayKeys, value: string) => {
+  const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
+  const back = () => setStep(s => Math.max(s - 1, 0));
+
+  const toggleArray = (key: keyof UserProfile, value: string) => {
     setProfile(prev => {
-      const arr = prev[key] ?? [];
+      const arr = (prev[key] as string[]) ?? [];
       return {
         ...prev,
         [key]: arr.includes(value)
@@ -43,276 +46,408 @@ export default function ProfileForm({ onComplete }: Props) {
     });
   };
 
-  /**
-   * Save profile to both localStorage and backend database
-   * 
-   * This demonstrates:
-   * - Converting form data to preference objects
-   * - Saving to backend API
-   * - Error handling during save
-   */
-  const handleComplete = async () => {
+  const finish = async () => {
     setSaving(true);
     setError(null);
 
     try {
-      // Save to localStorage (existing logic)
       onComplete(profile);
 
-      // Also save to backend database for future reference and recommendations
       const token = await getAccessTokenSilently();
 
-      // Build preferences list from profile data
-      const prefsToSave = [
-        // Save dietary preferences
-        ...profile.dietaryPreferences.map((pref) => ({
+      const prefs = [
+        ...profile.dietaryPreferences.map(v => ({
           preference_type: "preference",
-          value: pref.toLowerCase(),
+          value: v.toLowerCase(),
           category: "diet",
           metadata: { source: "onboarding" },
         })),
-        // Save dietary restrictions
-        ...profile.dietaryRestrictions.map((restr) => ({
+        ...profile.dietaryRestrictions.map(v => ({
           preference_type: "restriction",
-          value: restr.toLowerCase(),
+          value: v.toLowerCase(),
           category: "allergy",
           metadata: { source: "onboarding" },
         })),
-        // Save preferred cuisines
-        ...(profile.preferredCuisines ?? []).map((cuisine) => ({
+        ...(profile.preferredCuisines ?? []).map(v => ({
           preference_type: "cuisine_preference",
-          value: cuisine.toLowerCase(),
+          value: v.toLowerCase(),
           category: "cuisine",
           metadata: { source: "onboarding" },
         })),
-      ];
-
-      // Add custom allergies if provided
-      if (profile.otherAllergies?.trim()) {
-        prefsToSave.push({
-          preference_type: "allergy",
-          value: profile.otherAllergies,
-          category: "custom",
-          metadata: { source: "onboarding" },
-        });
-      }
-
-      // Add diet goal if set
-      if (profile.dietGoal) {
-        prefsToSave.push({
+        profile.dietGoal && {
           preference_type: "diet_goal",
           value: profile.dietGoal,
           category: "goal",
           metadata: { source: "onboarding" },
-        });
-      }
-
-      // Add activity level if set
-      if (profile.activityLevel) {
-        prefsToSave.push({
+        },
+        profile.activityLevel && {
           preference_type: "activity_level",
           value: profile.activityLevel,
           category: "lifestyle",
           metadata: { source: "onboarding" },
-        });
-      }
-
-      // Add cooking access if set
-      if (profile.cookingAccess) {
-        prefsToSave.push({
+        },
+        profile.cookingAccess && {
           preference_type: "cooking_access",
           value: profile.cookingAccess,
           category: "practical",
           metadata: { source: "onboarding" },
-        });
-      }
+        },
+      ].filter(Boolean);
 
-      // Save all preferences to backend
-      for (const pref of prefsToSave) {
-        await preferencesService.create(pref, token);
+      for (const p of prefs) {
+        // @ts-ignore
+        await preferencesService.create(p, token);
       }
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to save profile: ${errorMsg}`);
-      console.error(err);
+    } catch (e) {
+      setError("Failed to save your profile. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "2rem auto" }}>
-      <h2>Set up your food profile</h2>
+    <div style={{ maxWidth: 720, margin: "3rem auto", padding: "0 1rem" }}>
+      {/* Header */}
+      <div style={{ marginBottom: "2.5rem" }}>
+        <div
+          style={{
+            height: 8,
+            background: "#e5f5ec",
+            borderRadius: 999,
+            overflow: "hidden",
+            marginBottom: "1.2rem",
+          }}
+        >
+          <div
+            style={{
+              width: `${progressPct}%`,
+              background: "#16a34a",
+              height: "100%",
+              transition: "width 0.3s",
+            }}
+          />
+        </div>
 
-      {/* ======================
-          SECTION 1 — DIET & SAFETY
-         ====================== */}
+        <div style={{ textAlign: "center", color: "#475569" }}>
+          {step + 1} / {TOTAL_STEPS}
+        </div>
+      </div>
 
-      <h3>Dietary Preferences</h3>
-      {["Vegan", "Vegetarian", "Pescatarian", "Halal", "Kosher"].map(p => (
-        <label key={p} style={{ display: "block" }}>
-          <input
-            type="checkbox"
-            onChange={() => toggleArrayValue("dietaryPreferences", p)}
-          />{" "}
-          {p}
-        </label>
-      ))}
+      {/* STEP CONTENT */}
+      <div style={{ textAlign: "center", minHeight: 380 }}>
+        {/* STEP 1 — NAME */}
+        {step === 0 && (
+          <>
+            <h1 style={{ fontSize: 36, marginBottom: 12 }}>Welcome!</h1>
+            <p style={{ color: "#64748b", marginBottom: 32 }}>
+              Let’s personalize your FoodieTrack experience.
+            </p>
 
-      <h3>Dietary Restrictions / Allergies</h3>
-      {["Gluten-free", "Dairy-free", "Nut-free"].map(r => (
-        <label key={r} style={{ display: "block" }}>
-          <input
-            type="checkbox"
-            onChange={() => toggleArrayValue("dietaryRestrictions", r)}
-          />{" "}
-          {r}
-        </label>
-      ))}
+            <input
+              placeholder="What’s your name?"
+              value={profile.name}
+              onChange={e =>
+                setProfile(prev => ({ ...prev, name: e.target.value }))
+              }
+              style={{
+                width: "100%",
+                padding: "1rem",
+                fontSize: 18,
+                borderRadius: 12,
+                border: "2px solid #16a34a",
+              }}
+            />
+          </>
+        )}
 
-      <input
-        placeholder="Other allergies (optional)"
-        value={profile.otherAllergies}
-        onChange={e =>
-          setProfile(prev => ({ ...prev, otherAllergies: e.target.value }))
-        }
-        style={{ width: "100%", marginTop: "1rem", padding: "0.5rem" }}
-      />
+        {/* STEP 2 — DIET PREFS */}
+        {step === 1 && (
+          <>
+            <h1 style={{ fontSize: 34 }}>
+              Hi {profile.name || "there"}!
+            </h1>
+            <p style={{ marginBottom: 32 }}>
+              Do you follow any of these diets?
+            </p>
 
-      {/* ======================
-          SECTION 2 — GOALS & LIFESTYLE
-         ====================== */}
+            {["Vegan", "Vegetarian", "Pescatarian", "Halal", "Kosher"].map(v => (
+              <label
+                key={v}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "1rem 1.25rem",
+                  border: "1px solid #d1fae5",
+                  borderRadius: 14,
+                  marginBottom: 12,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={profile.dietaryPreferences.includes(v)}
+                  onChange={() =>
+                    toggleArray("dietaryPreferences", v)
+                  }
+                />
+                <span style={{ fontSize: 18 }}>{v}</span>
+              </label>
+            ))}
+          </>
+        )}
 
-      <h3>Diet Goal</h3>
-      {(["Cut", "Maintain", "Bulk"] as DietGoal[]).map(goal => (
-        <label key={goal} style={{ display: "block" }}>
-          <input
-            type="radio"
-            name="dietGoal"
-            checked={profile.dietGoal === goal}
-            onChange={() =>
-              setProfile(prev => ({
-                ...prev,
-                onDiet: true,
-                dietGoal: goal,
-              }))
-            }
-          />{" "}
-          {goal}
-        </label>
-      ))}
+        {/* STEP 3 — RESTRICTIONS */}
+        {step === 2 && (
+          <>
+            <h1 style={{ fontSize: 34 }}>Any allergies?</h1>
+            <p style={{ marginBottom: 32 }}>
+              We’ll make sure to avoid these.
+            </p>
 
-      <h3>Activity Level</h3>
-      {(
-        ["Sedentary", "Light", "Active", "Very_active"] as ActivityLevel[]
-      ).map(level => (
-        <label key={level} style={{ display: "block" }}>
-          <input
-            type="radio"
-            name="activityLevel"
-            checked={profile.activityLevel === level}
-            onChange={() =>
-              setProfile(prev => ({ ...prev, activityLevel: level }))
-            }
-          />{" "}
-          {level.replace("_", " ")}
-        </label>
-      ))}
+            {["Gluten-free", "Dairy-free", "Nut-free"].map(v => (
+              <label
+                key={v}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "1rem 1.25rem",
+                  border: "1px solid #d1fae5",
+                  borderRadius: 14,
+                  marginBottom: 12,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={profile.dietaryRestrictions.includes(v)}
+                  onChange={() =>
+                    toggleArray("dietaryRestrictions", v)
+                  }
+                />
+                <span>{v}</span>
+              </label>
+            ))}
 
-      {/* ======================
-          SECTION 3 — TASTE & PRACTICALITY
-         ====================== */}
+            <input
+              placeholder="Other allergies (optional)"
+              value={profile.otherAllergies}
+              onChange={e =>
+                setProfile(p => ({
+                  ...p,
+                  otherAllergies: e.target.value,
+                }))
+              }
+              style={{
+                width: "100%",
+                marginTop: 16,
+                padding: "0.75rem",
+                borderRadius: 10,
+                border: "1px solid #cbd5e1",
+              }}
+            />
+          </>
+        )}
 
-      <h3>Preferred Cuisines</h3>
-      {[
-        "Italian",
-        "Chinese",
-        "Japanese",
-        "Korean",
-        "Indian",
-        "Middle Eastern",
-        "Mexican",
-        "Western",
-      ].map(cuisine => (
-        <label key={cuisine} style={{ display: "block" }}>
-          <input
-            type="checkbox"
-            checked={profile.preferredCuisines?.includes(cuisine)}
-            onChange={() =>
-              toggleArrayValue("preferredCuisines", cuisine)
-            }
-          />{" "}
-          {cuisine}
-        </label>
-      ))}
+        {/* STEP 4 — DIET GOAL */}
+        {step === 3 && (
+          <>
+            <h1 style={{ fontSize: 34 }}>
+              What’s your diet goal, {profile.name}?
+            </h1>
+            <p style={{ marginBottom: 32 }}>
+              This helps us tailor calories and meal suggestions.
+            </p>
 
-      <input
-        placeholder="Other cuisines (comma separated)"
-        value={otherCuisines}
-        onChange={e => setOtherCuisines(e.target.value)}
-        onBlur={() => {
-          if (!otherCuisines.trim()) return;
+            {[
+              ["cut", "CUT – Lose fat"],
+              ["maintain", "MAINTAIN – Maintain weight"],
+              ["bulk", "BULK – Build muscle"],
+            ].map(([v, label]) => (
+              <button
+                key={v}
+                onClick={() =>
+                  setProfile(p => ({
+                    ...p,
+                    dietGoal: v as DietGoal,
+                  }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "1.2rem",
+                  borderRadius: 16,
+                  marginBottom: 16,
+                  fontSize: 18,
+                  background:
+                    profile.dietGoal === v ? "#16a34a" : "white",
+                  color:
+                    profile.dietGoal === v ? "white" : "#0f172a",
+                  border: "2px solid #16a34a",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </>
+        )}
 
-          const extras = otherCuisines
-            .split(",")
-            .map(c => c.trim())
-            .filter(Boolean);
+        {/* STEP 5 — ACTIVITY */}
+        {step === 4 && (
+          <>
+            <h1 style={{ fontSize: 34 }}>Activity level</h1>
+            <p style={{ marginBottom: 32 }}>
+              How active are you on an average day?
+            </p>
 
-          setProfile(prev => ({
-            ...prev,
-            preferredCuisines: Array.from(
-              new Set([...(prev.preferredCuisines ?? []), ...extras])
-            ),
-          }));
+            {(
+              ["Sedentary", "Light", "Active", "Very_active"] as ActivityLevel[]
+            ).map(v => (
+              <button
+                key={v}
+                onClick={() =>
+                  setProfile(p => ({ ...p, activityLevel: v }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "1rem",
+                  marginBottom: 12,
+                  borderRadius: 14,
+                  border: "1px solid #d1fae5",
+                  background:
+                    profile.activityLevel === v ? "#bbf7d0" : "white",
+                }}
+              >
+                {v.replace("_", " ")}
+              </button>
+            ))}
+          </>
+        )}
 
-          setOtherCuisines("");
-        }}
+        {/* STEP 6 — CUISINES */}
+        {step === 5 && (
+          <>
+            <h1 style={{ fontSize: 34 }}>Favorite cuisines</h1>
+            <p style={{ marginBottom: 32 }}>
+              What kinds of food do you enjoy?
+            </p>
+
+            {[
+              "Italian",
+              "Chinese",
+              "Japanese",
+              "Korean",
+              "Indian",
+              "Mexican",
+              "Middle Eastern",
+              "Western",
+            ].map(v => (
+              <label
+                key={v}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "1rem",
+                  borderRadius: 12,
+                  border: "1px solid #d1fae5",
+                  marginBottom: 10,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={profile.preferredCuisines?.includes(v)}
+                  onChange={() =>
+                    toggleArray("preferredCuisines", v)
+                  }
+                />
+                <span>{v}</span>
+              </label>
+            ))}
+          </>
+        )}
+
+        {/* STEP 7 — COOKING */}
+        {step === 6 && (
+          <>
+            <h1 style={{ fontSize: 34 }}>Cooking access</h1>
+            <p style={{ marginBottom: 32 }}>
+              What equipment do you usually have?
+            </p>
+
+            {(
+              ["None", "Microwave", "Full_kitchen"] as CookingAccess[]
+            ).map(v => (
+              <button
+                key={v}
+                onClick={() =>
+                  setProfile(p => ({ ...p, cookingAccess: v }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "1rem",
+                  marginBottom: 14,
+                  borderRadius: 14,
+                  background:
+                    profile.cookingAccess === v ? "#16a34a" : "white",
+                  color:
+                    profile.cookingAccess === v ? "white" : "black",
+                  border: "2px solid #16a34a",
+                }}
+              >
+                {v.replace("_", " ")}
+              </button>
+            ))}
+          </>
+        )}
+
+        {/* STEP 8 — DONE */}
+        {step === 7 && (
+          <>
+            <h1 style={{ fontSize: 36 }}>You’re all set!</h1>
+            <p style={{ marginBottom: 32 }}>
+              Your profile is ready. Let’s start your daily check-in!
+            </p>
+
+            <button
+              onClick={finish}
+              disabled={saving}
+              style={{
+                padding: "1rem 2rem",
+                fontSize: 18,
+                borderRadius: 14,
+                background: "#16a34a",
+                color: "white",
+                border: "none",
+              }}
+            >
+              {saving ? "Saving…" : "Start using FoodieTrack →"}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* NAV */}
+      <div
         style={{
-          width: "100%",
-          marginTop: "0.75rem",
-          padding: "0.5rem",
-        }}
-      />
-
-      <h3>Cooking Access</h3>
-      {(
-        ["None", "Microwave", "Full_kitchen"] as CookingAccess[]
-      ).map(access => (
-        <label key={access} style={{ display: "block" }}>
-          <input
-            type="radio"
-            name="cookingAccess"
-            checked={profile.cookingAccess === access}
-            onChange={() =>
-              setProfile(prev => ({ ...prev, cookingAccess: access }))
-            }
-          />{" "}
-          {access.replace("_", " ")}
-        </label>
-      ))}
-
-      {/* ======================
-          SUBMIT
-         ====================== */}
-
-      {error && <div style={{ color: "red", marginTop: "1rem" }}>{error}</div>}
-
-      <button
-        onClick={handleComplete}
-        disabled={saving}
-        style={{
-          marginTop: "2rem",
-          padding: "0.75rem 1.5rem",
-          fontSize: "1rem",
-          borderRadius: "8px",
-          background: saving ? "#999" : "#1f2937",
-          color: "white",
-          border: "none",
-          cursor: saving ? "not-allowed" : "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 32,
         }}
       >
-        {saving ? "Saving..." : "Continue"}
-      </button>
+        {step > 0 && (
+          <button onClick={back} style={{ fontSize: 16 }}>
+            ← Back
+          </button>
+        )}
+
+        {step < TOTAL_STEPS - 1 && (
+          <button onClick={next} style={{ fontSize: 16 }}>
+            Next →
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div style={{ color: "red", marginTop: 16 }}>{error}</div>
+      )}
     </div>
   );
 }

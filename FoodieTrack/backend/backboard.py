@@ -1,3 +1,4 @@
+import os
 import requests
 from dotenv import load_dotenv
 
@@ -13,7 +14,6 @@ def store_message(user_id, text, metadata):
             **metadata
         }
     }
-    requests.post("https://api.backboard.io/v1/documents", json=payload)
 
     res = requests.post(
         f"{BACK_URL}/documents",

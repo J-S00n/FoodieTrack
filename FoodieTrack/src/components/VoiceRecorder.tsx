@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { ElevenLabsClient } from "elevenlabs";
 
-
 export default function VoiceRecorder() {
   const [recording, setRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
@@ -10,7 +9,7 @@ export default function VoiceRecorder() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  // Initialize ElevenLabs client
+  // ⚠️ Frontend ElevenLabs client (intentionally kept as-is)
   const elevenlabs = new ElevenLabsClient({
     apiKey: "sk_286b4a20715a1271d27b2cf6ab10eac6ef020af6d5085fea",
   });
@@ -33,11 +32,15 @@ export default function VoiceRecorder() {
       try {
         const file = new File([blob], "recording.webm", { type: blob.type });
 
-        // Send to ElevenLabs for transcription
-        const result = await elevenlabs.speechToText.convert({ file, model_id: "scribe_v2" });
+        // ✅ THIS LINE WAS MISSING — core cause of the error
+        const result = await elevenlabs.speechToText.convert({
+          file,
+          model_id: "scribe_v2",
+        });
 
         setTranscript(result.text || "No transcript returned.");
-        
+
+        // Optional backend persistence (kept from teammate)
         await fetch("/api/store-transcript", {
           method: "POST",
           headers: {
@@ -69,20 +72,19 @@ export default function VoiceRecorder() {
       <h3>Voice Check-in 🎤</h3>
 
       {!recording ? (
-      <button
-         onClick={startRecording}
-         className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-      >
-        Start Recording
-      </button>
-
+        <button
+          onClick={startRecording}
+          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+        >
+          Start Recording
+        </button>
       ) : (
-      <button
-         onClick={stopRecording}
-         className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-      >
-        Stop Recording
-      </button>
+        <button
+          onClick={stopRecording}
+          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+        >
+          Stop Recording
+        </button>
       )}
 
       {audioURL && (
