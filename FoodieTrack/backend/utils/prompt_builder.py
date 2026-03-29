@@ -5,7 +5,7 @@ from typing import Dict, Any
 def build_prompt(
     *,
     transcript: str,
-    user_preferences: Dict[str, Any],
+    user_preferences: str,
     user_history: Dict[str, Any],
     menu_data: Dict[str, Any],
     is_logged_in: bool,
@@ -37,7 +37,7 @@ IMPORTANT:
 ────────────────────
 USER PROFILE (if logged in)
 ────────────────────
-{json.dumps(user_preferences, indent=2)}
+{user_preferences}
 
 Includes (may be empty):
 - dietary restrictions (e.g., halal, vegetarian, no dairy)
@@ -114,14 +114,14 @@ If the user IS logged in:
 OUTPUT REQUIREMENTS (STRICT)
 ────────────────────
 
-Return ONLY valid JSON matching this schema:
+Return ONLY valid JSON matching this schema.:
 
 {{
   "mood": {{
     "label": string,
     "confidence": number
   }},
-  "recommendations": [
+  "recommendation1": [
     {{
       "residence": string,
       "day": string,
